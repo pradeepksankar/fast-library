@@ -4,8 +4,7 @@ import asyncio
 from fastapi import FastAPI
 from uvicorn import Config, Server
 
-from .db import db
-
+from . import db
 from . import books
 from . import authors
 
@@ -36,10 +35,14 @@ def setup_logging():
     log.addHandler(logging_handler)
 
 
+async def run():
+    await db.initialize()
+    web_server = Server(Config(app=app, host="0.0.0.0", port=8000))
+    await web_server.serve()
+
+
 if __name__ == "__main__":
     setup_logging()
-    web_server = Server(Config(app=app, host="0.0.0.0", port=8000))
     loop = asyncio.get_event_loop()
-    loop.call_soon(lambda: asyncio.create_task(db.init_db()))
-    loop.call_soon(lambda: asyncio.create_task(web_server.serve()))
+    loop.call_soon(lambda: asyncio.create_task(run()))
     loop.run_forever()

@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .db import db
+from . import db
 
 
 log = logging.getLogger(__name__)

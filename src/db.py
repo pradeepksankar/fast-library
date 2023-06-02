@@ -5,56 +5,42 @@ import aiosqlite
 
 
 log = logging.getLogger(__name__)
+connection = None
 
 
-class Database:
-    def __init__(self):
-        self.connection = None
+async def initialize():
+    global connection
 
-    async def init_db(self):
-        log.debug(f"Initializing db")
+    log.debug("Initializing database...")
 
-        self.connection = await aiosqlite.connect(f"{os.getcwd()}/db.sqlite")
+    connection = await aiosqlite.connect(f"{os.getcwd()}/app.db")
 
-        await self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS authors (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-            """
-        )
+    await connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS authors (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        );
 
-        await self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS books (
-                id INTEGER PRIMARY KEY,
-                author_id INTEGER NOT NULL,
-                title TEXT NOT NULL
-            )
-            """
-        )
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY,
+            author_id INTEGER NOT NULL,
+            title TEXT NOT NULL
+        );
 
-        await self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS readers (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-            """
-        )
+        CREATE TABLE IF NOT EXISTS readers (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        );
 
-        await self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS borrows (
-                id INTEGER PRIMARY KEY,
-                reader_id INTEGER NOT NULL,
-                book_id INTEGER NOT NULL,
-                borrow_time TEXT NOT NULL,
-                return_time TEXT
-            )
-            """
-        )
+        CREATE TABLE IF NOT EXISTS borrows (
+            id INTEGER PRIMARY KEY,
+            reader_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            borrow_time TEXT NOT NULL,
+            return_time TEXT
+        );
+        """
+    )
 
-
-db = Database()
+    log.debug("Database ready.")
