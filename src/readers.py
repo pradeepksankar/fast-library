@@ -16,15 +16,16 @@ class Reader(BaseModel):
 
 @router.post("/v1/readers")
 async def add_reader(reader: Reader):
-    await db.connection.execute(
+    reader_id = (await db.connection.execute_insert(
         """
         INSERT INTO readers
             (name)
         VALUES (?)
         """,
-        (reader.name),
-    )
+        (reader.name,),
+    ))[0]
     log.debug(f"Reader added {reader.name}")
+    return {"reader_id": reader_id}
 
 
 @router.get("/v1/readers")

@@ -15,8 +15,6 @@ router = APIRouter()
 class Borrow(BaseModel):
     reader_id: int
     book_id: int
-    borrow_time: datetime
-    return_time: Optional[datetime] = None
 
 
 @router.post("/v1/borrows")
@@ -25,33 +23,54 @@ async def add_borrow(borrow: Borrow):
         """
         INSERT INTO borrows
             (reader_id, book_id, borrow_time, return_time)
-        VALUES (?, ?, ?, ?)
+        VALUES
+            (?, ?, DATE('now'), NULL)
         """,
-        (borrow.reader_id, borrow.book_id, borrow.borrow_time, borrow.return_time),
+        (borrow.reader_id, borrow.book_id),
     )
-
     log.debug(f"New borrow from reader id {borrow.reader_id}")
 
 
-@router.get("/v1/borrows/{reader_id}")
-async def get_borrows(reader_id: int):
+@router.delete("/v1/borrows/{book_id}")
+async def del_borrow(book_id: int):
+    await db.connection.execute(
+        """
+        UPDATE
+            borrows
+        SET
+            return_time = DATE('now')
+        WHERE
+            book_id = ?
+            AND return_time IS NULL;
+        """,
+        (book_id,),
+    )
+    log.debug(f"Book {book_id} returned.")
+
+
+@router.get("/v1/borrows")
+async def get_borrows():
     async with db.connection.execute(
         """
         SELECT
-            borrows.id,
+            readers.name,
             books.title,
             authors.name,
             borrows.borrow_time
         FROM
             borrows
-        JOIN
+        LEFT JOIN
             books ON books.id = borrows.book_id
-        JOIN
+        LEFT JOIN
             authors ON authors.id = books.author_id
+        LEFT JOIN
+            readers ON readers.id = borrows.reader_id
         WHERE
             borrows.return_time IS NULL
         """
     ) as cursor:
         rows = await cursor.fetchall()
 
-    return {"borrows": [{"id": item[0], "title": item[1], "author": item[2], "borrow_time": item[3]} for item in rows]}
+    return {
+        "borrows": [{"reader": item[0], "title": item[1], "author": item[2], "borrow_time": item[3]} for item in rows]
+    }

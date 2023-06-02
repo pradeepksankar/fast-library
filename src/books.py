@@ -17,16 +17,18 @@ class Book(BaseModel):
 
 @router.post("/v1/books")
 async def add_book(book: Book):
-    await db.connection.execute(
+    book_id = (await db.connection.execute_insert(
         """
         INSERT INTO books
             (author_id, title)
         VALUES (?, ?)
         """,
         (book.author_id, book.title),
-    )
+    ))[0]
 
     log.debug(f"Book added {book.title}")
+
+    return {"book_id": book_id}
 
 
 @router.get("/v1/books")

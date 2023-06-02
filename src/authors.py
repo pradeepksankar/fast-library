@@ -16,14 +16,15 @@ class Author(BaseModel):
 
 @router.post("/v1/authors")
 async def add_author(author: Author):
-    await db.connection.execute(
+    author_id = (await db.connection.execute_insert(
         """
-        INSERT INTO authors
-        VALUES (?, ?)
+        INSERT INTO authors (name) VALUES (?)
         """,
-        (None, author.name),
-    )
+        (author.name,),
+    ))[0]
     log.debug(f"Author added {author.name}")
+
+    return {"author_id": author_id}
 
 
 @router.get("/v1/authors")

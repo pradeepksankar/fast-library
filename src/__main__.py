@@ -4,14 +4,18 @@ import asyncio
 from fastapi import FastAPI
 from uvicorn import Config, Server
 
-from . import db
-from . import books
 from . import authors
+from . import books
+from . import borrows
+from . import db
+from . import readers
 
 app = FastAPI()
 
-app.include_router(books.router)
 app.include_router(authors.router)
+app.include_router(books.router)
+app.include_router(borrows.router)
+app.include_router(readers.router)
 
 
 @app.get("/")
