@@ -15,7 +15,7 @@ app.include_router(authors.router)
 
 @app.get("/")
 async def root():
-    return 'Book Library'
+    return "Book Library"
 
 
 @app.on_event("shutdown")
@@ -25,10 +25,7 @@ async def app_shutdown():
 
 
 if __name__ == "__main__":
-
-    web_server = Server(
-        Config(app=app, host='0.0.0.0', port=8000)
-    )
+    web_server = Server(Config(app=app, host="0.0.0.0", port=8000))
     loop = asyncio.get_event_loop()
     loop.call_soon(lambda: asyncio.create_task(db.init_db()))
     loop.call_soon(lambda: asyncio.create_task(web_server.serve()))

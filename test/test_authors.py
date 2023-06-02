@@ -14,18 +14,11 @@ def teardown_module(module):
 
 
 def test_add_authors():
-
-    result = requests.post('http://127.0.0.1:8000/v1/authors', json={'name': 'Arthur C. Clarke'})
+    result = requests.post("http://127.0.0.1:8000/v1/authors", json={"name": "Arthur C. Clarke"})
     assert result.ok
 
-    result = requests.post('http://127.0.0.1:8000/v1/authors', json={'name': 'Stephen Hawking'})
+    result = requests.post("http://127.0.0.1:8000/v1/authors", json={"name": "Stephen Hawking"})
     assert result.ok
 
-    result = requests.get('http://127.0.0.1:8000/v1/authors')
-    assert result.json() == {
-        'authors': [
-            {'id': 1, 'name': 'Arthur C. Clarke'},
-            {'id': 2, 'name': 'Stephen Hawking'}
-        ]
-    }
-
+    result = requests.get("http://127.0.0.1:8000/v1/authors")
+    assert result.json() == {"authors": [{"id": 1, "name": "Arthur C. Clarke"}, {"id": 2, "name": "Stephen Hawking"}]}
