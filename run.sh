@@ -1,8 +1,5 @@
 #!/bin/bash -ex
 
-docker build -t app .
+docker build -t app --target app .
 
-docker run \
-    -p 8000:8000 \
-    --rm \
-    app python -m app
+docker run --rm -it -p 8000:8000 app
