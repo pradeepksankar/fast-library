@@ -1,7 +1,10 @@
-import aiosqlite
+import logging
 import os
 
-from .log import log
+import aiosqlite
+
+
+log = logging.getLogger(__name__)
 
 
 class Database:
