@@ -1,49 +1,46 @@
-import aiosqlite
+import logging
 import os
 
-from .log import log
+import aiosqlite
 
 
-class Database():
+log = logging.getLogger(__name__)
+connection = None
 
-    def __init__(self):
-        self.connection = None
 
-    async def init_db(self):
-        log.debug(f'Initializing db')
+async def initialize():
+    global connection
 
-        self.connection = await aiosqlite.connect(f'{os.getcwd()}/db.sqlite')
+    log.debug("Initializing database...")
 
-        await self.connection.execute('''
-            CREATE TABLE IF NOT EXISTS authors (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-            ''')
+    connection = await aiosqlite.connect(f"{os.getcwd()}/app.db")
 
-        await self.connection.execute('''
-            CREATE TABLE IF NOT EXISTS books (
-                id INTEGER PRIMARY KEY,
-                author_id INTEGER NOT NULL,
-                title TEXT NOT NULL
-            )
-            ''')
+    await connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS authors (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        );
 
-        await self.connection.execute('''
-            CREATE TABLE IF NOT EXISTS readers (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-            ''')
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY,
+            author_id INTEGER NOT NULL,
+            title TEXT NOT NULL
+        );
 
-        await self.connection.execute('''
-            CREATE TABLE IF NOT EXISTS borrows (
-                id INTEGER PRIMARY KEY,
-                reader_id INTEGER NOT NULL,
-                book_id INTEGER NOT NULL,
-                borrow_time TEXT NOT NULL,
-                return_time TEXT
-            )
-            ''')
+        CREATE TABLE IF NOT EXISTS readers (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        );
 
-db = Database()
+        CREATE TABLE IF NOT EXISTS borrows (
+            id INTEGER PRIMARY KEY,
+            reader_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            borrow_time TEXT NOT NULL,
+            return_time TEXT
+        );
+        """
+    )
+
+    log.debug("Database ready.")

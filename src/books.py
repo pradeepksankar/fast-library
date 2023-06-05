@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Response, status
+import logging
+
+from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .db import db
-from .log import log
+from . import db
 
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -13,21 +15,26 @@ class Book(BaseModel):
     title: str
 
 
-@router.post('/v1/books')
+@router.post("/v1/books")
 async def add_book(book: Book):
-
-    await db.connection.execute('''
+    book_id = (await db.connection.execute_insert(
+        """
         INSERT INTO books
             (author_id, title)
         VALUES (?, ?)
-        ''', (book.author_id, book.title))
+        """,
+        (book.author_id, book.title),
+    ))[0]
 
-    log.debug(f'Book added {book.title}')
+    log.debug(f"Book added {book.title}")
 
-@router.get('/v1/books')
+    return {"book_id": book_id}
+
+
+@router.get("/v1/books")
 async def get_books():
-
-    async with db.connection.execute('''
+    async with db.connection.execute(
+        """
         SELECT
             books.id,
             books.title,
@@ -36,13 +43,8 @@ async def get_books():
             books
         JOIN
             authors ON authors.id = books.author_id
-        ''') as cursor:
+        """
+    ) as cursor:
         rows = await cursor.fetchall()
 
-    return {
-        "books": [{
-            "id": item[0],
-            "title": item[1],
-            "author": item[2]
-        } for item in rows]
-    }
+    return {"books": [{"id": item[0], "title": item[1], "author": item[2]} for item in rows]}
