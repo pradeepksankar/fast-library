@@ -1,0 +1,83 @@
+From d9a5fd9d33a216de08b37c4a02c447beb537d517 Mon Sep 17 00:00:00 2001
+From: pradeepksankar <pradeep.theunsuspectablevictim@gmail.com>
+Date: Sun, 9 Jul 2023 22:06:27 +0100
+Subject: [PATCH] version1
+
+---
+ run.sh         |  7 +++++--
+ src/borrows.py | 17 ++++++++++++++++-
+ test/tests.py  | 18 ++++++++++++++++++
+ 3 files changed, 39 insertions(+), 3 deletions(-)
+ create mode 100644 test/tests.py
+
+diff --git a/run.sh b/run.sh
+index 7b1fe0c..6f3663a 100755
+--- a/run.sh
++++ b/run.sh
+@@ -1,5 +1,8 @@
+-#!/bin/bash -ex
++#!/bin/bash
+ 
+ docker build -t app --target app .
+ 
+-docker run --rm -it -p 8000:8000 app
++#docker run --rm -it -p 8000:8000 app 
++
++docker run -v "$PWD/fast-library.db:/app/fast-library.db" -p 8000:8000 fast-library
++
+diff --git a/src/borrows.py b/src/borrows.py
+index 17841aa..f325f59 100644
+--- a/src/borrows.py
++++ b/src/borrows.py
+@@ -25,7 +25,22 @@ async def add_borrow(borrow: Borrow):
+             (reader_id, book_id, borrow_time, return_time)
+         VALUES
+             (?, ?, DATE('now'), NULL)
+-        """,
++        """
++        if book_id not in books:
++            raise HTTPException(status_code=404, detail="Book not found")
++
++        if reader_id not in readers:
++            raise HTTPException(status_code=404, detail="Reader not found")
++
++        if book.borrowed_by != None:
++            raise HTTPException(status_code=409, detail="Book already borrowed")
++
++        if book.borrowed_by == reader_id:
++            return
++
++            book.borrowed_by = reader_id
++
++        db.session.commit(),
+         (borrow.reader_id, borrow.book_id),
+     )
+     log.debug(f"New borrow from reader id {borrow.reader_id}")
+diff --git a/test/tests.py b/test/tests.py
+new file mode 100644
+index 0000000..f110fb7
+--- /dev/null
++++ b/test/tests.py
+@@ -0,0 +1,18 @@
++def test_post_borrows_invalid_book_id(self):
++    response = self.client.post("/v1/borrows", json={"book_id": 1000, "reader_id": 1})
++    self.assertEqual(response.status_code, 404)
++    self.assertEqual(response.json()["detail"], "Book not found")
++
++def test_post_borrows_invalid_reader_id(self):
++    response = self.client.post("/v1/borrows", json={"book_id": 1, "reader_id": 1000})
++    self.assertEqual(response.status_code, 404)
++    self.assertEqual(response.json()["detail"], "Reader not found")
++
++def test_post_borrows_book_already_borrowed(self):
++    book = books.get(1)
++    book.borrowed_by = 1
++    db.session.commit()
++
++    response = self.client.post("/v1/borrows", json={"book_id": 1, "reader_id": 2})
++    self.assertEqual(response.status_code, 409)
++    self.assertEqual(response.json()["detail"], "Book already borrowed")
+\ No newline at end of file
+-- 
+2.41.0.windows.2
+
