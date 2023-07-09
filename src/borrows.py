@@ -25,7 +25,22 @@ async def add_borrow(borrow: Borrow):
             (reader_id, book_id, borrow_time, return_time)
         VALUES
             (?, ?, DATE('now'), NULL)
-        """,
+        """
+        if book_id not in books:
+            raise HTTPException(status_code=404, detail="Book not found")
+
+        if reader_id not in readers:
+            raise HTTPException(status_code=404, detail="Reader not found")
+
+        if book.borrowed_by != None:
+            raise HTTPException(status_code=409, detail="Book already borrowed")
+
+        if book.borrowed_by == reader_id:
+            return
+
+            book.borrowed_by = reader_id
+
+        db.session.commit(),
         (borrow.reader_id, borrow.book_id),
     )
     log.debug(f"New borrow from reader id {borrow.reader_id}")
