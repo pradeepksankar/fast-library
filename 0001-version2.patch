@@ -1,0 +1,120 @@
+From ed6d6e364c815e19ea663e78258a79cc50ee2236 Mon Sep 17 00:00:00 2001
+From: pradeepksankar <pradeep.theunsuspectablevictim@gmail.com>
+Date: Tue, 11 Jul 2023 14:27:55 +0100
+Subject: [PATCH] version2
+
+---
+ src/borrows.py       | 19 ++++++++-----------
+ test/borrows_test.py | 38 ++++++++++++++++++++++++++++++++++++++
+ test/tests.py        | 18 ------------------
+ 3 files changed, 46 insertions(+), 29 deletions(-)
+ create mode 100644 test/borrows_test.py
+ delete mode 100644 test/tests.py
+
+diff --git a/src/borrows.py b/src/borrows.py
+index f325f59..90bb336 100644
+--- a/src/borrows.py
++++ b/src/borrows.py
+@@ -26,21 +26,18 @@ async def add_borrow(borrow: Borrow):
+         VALUES
+             (?, ?, DATE('now'), NULL)
+         """
+-        if book_id not in books:
+-            raise HTTPException(status_code=404, detail="Book not found")
++        if book_id not in books or reader_id not in readers:
++            return jsonify({"error": "Invalid book or reader ID"}), 400
+ 
+-        if reader_id not in readers:
+-            raise HTTPException(status_code=404, detail="Reader not found")
++        if book.borrower_id is not None:
++            if book.borrower_id != reader_id:
++                return jsonify({"error": "Book is already borrowed"}), 400
+ 
+-        if book.borrowed_by != None:
+-            raise HTTPException(status_code=409, detail="Book already borrowed")
++        book.borrower_id = reader_id
+ 
+-        if book.borrowed_by == reader_id:
+-            return
++        db.session.commit()
+ 
+-            book.borrowed_by = reader_id
+-
+-        db.session.commit(),
++        return jsonify({"message": "Book borrowed"}), 200,
+         (borrow.reader_id, borrow.book_id),
+     )
+     log.debug(f"New borrow from reader id {borrow.reader_id}")
+diff --git a/test/borrows_test.py b/test/borrows_test.py
+new file mode 100644
+index 0000000..7aa11f5
+--- /dev/null
++++ b/test/borrows_test.py
+@@ -0,0 +1,38 @@
++from fastapi.testclient import TestClient
++
++from app import app
++
++client = TestClient(app)
++
++def test_borrow_valid_book_and_reader():
++    response = client.post("/v1/borrows", json={"book_id": 1, "reader_id": 2})
++
++    assert response.status_code == 200
++    assert response.json()["message"] == "Book borrowed"
++
++def test_borrow_invalid_book_id():
++    response = client.post("/v1/borrows", json={"book_id": 999, "reader_id": 2})
++
++    assert response.status_code == 400
++    assert response.json()["error"] == "Invalid book ID"
++
++def test_borrow_invalid_reader_id():
++    response = client.post("/v1/borrows", json={"book_id": 1, "reader_id": 999})
++
++    assert response.status_code == 400
++    assert response.json()["error"] == "Invalid reader ID"
++
++def test_borrow_book_already_borrowed():
++    book = Book(id=1, title="The Hitchhiker's Guide to the Galaxy")
++    reader = Reader(id=2, name="Arthur Dent")
++    db.session.add(book)
++    db.session.add(reader)
++    db.session.commit()
++
++    book.borrower_id = reader.id
++    db.session.commit()
++
++    response = client.post("/v1/borrows", json={"book_id": 1, "reader_id": 2})
++
++    assert response.status_code == 400
++    assert response.json()["error"] == "Book is already borrowed"
+\ No newline at end of file
+diff --git a/test/tests.py b/test/tests.py
+deleted file mode 100644
+index f110fb7..0000000
+--- a/test/tests.py
++++ /dev/null
+@@ -1,18 +0,0 @@
+-def test_post_borrows_invalid_book_id(self):
+-    response = self.client.post("/v1/borrows", json={"book_id": 1000, "reader_id": 1})
+-    self.assertEqual(response.status_code, 404)
+-    self.assertEqual(response.json()["detail"], "Book not found")
+-
+-def test_post_borrows_invalid_reader_id(self):
+-    response = self.client.post("/v1/borrows", json={"book_id": 1, "reader_id": 1000})
+-    self.assertEqual(response.status_code, 404)
+-    self.assertEqual(response.json()["detail"], "Reader not found")
+-
+-def test_post_borrows_book_already_borrowed(self):
+-    book = books.get(1)
+-    book.borrowed_by = 1
+-    db.session.commit()
+-
+-    response = self.client.post("/v1/borrows", json={"book_id": 1, "reader_id": 2})
+-    self.assertEqual(response.status_code, 409)
+-    self.assertEqual(response.json()["detail"], "Book already borrowed")
+\ No newline at end of file
+-- 
+2.41.0.windows.2
+
