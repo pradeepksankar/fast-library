@@ -26,21 +26,18 @@ async def add_borrow(borrow: Borrow):
         VALUES
             (?, ?, DATE('now'), NULL)
         """
-        if book_id not in books:
-            raise HTTPException(status_code=404, detail="Book not found")
+        if book_id not in books or reader_id not in readers:
+            return jsonify({"error": "Invalid book or reader ID"}), 400
 
-        if reader_id not in readers:
-            raise HTTPException(status_code=404, detail="Reader not found")
+        if book.borrower_id is not None:
+            if book.borrower_id != reader_id:
+                return jsonify({"error": "Book is already borrowed"}), 400
 
-        if book.borrowed_by != None:
-            raise HTTPException(status_code=409, detail="Book already borrowed")
+        book.borrower_id = reader_id
 
-        if book.borrowed_by == reader_id:
-            return
+        db.session.commit()
 
-            book.borrowed_by = reader_id
-
-        db.session.commit(),
+        return jsonify({"message": "Book borrowed"}), 200,
         (borrow.reader_id, borrow.book_id),
     )
     log.debug(f"New borrow from reader id {borrow.reader_id}")
